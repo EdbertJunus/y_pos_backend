@@ -1,0 +1,9 @@
+CREATE_SALES_TABLE = """
+CREATE TABLE IF NOT EXISTS sales_files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    month TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    saved_path TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+"""
