@@ -16,6 +16,16 @@ init_db()
 # -----------------------
 # Upload and Save Sales File
 # -----------------------
+
+@app.get("/")
+async def root():
+    return {"message": "Hello from FastAPI on Vercel!"}
+
+# Example route that returns JSON or streams files
+@app.get("/ping")
+async def ping():
+    return {"status": "ok"}
+
 @app.post("/sales/upload")
 async def upload_sales_file(
     month: str = Form(...), 
