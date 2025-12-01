@@ -38,7 +38,7 @@ async def upload_sales_file(
     saved_path = save_uploaded_file(contents, cleaned_name)
 
     # Insert into SQLite
-    upsert_sales_record(month, cleaned_name, saved_path)
+    # upsert_sales_record(month, cleaned_name, saved_path)
 
     return {"status": "success", "filename": cleaned_name}
 
