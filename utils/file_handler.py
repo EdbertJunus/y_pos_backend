@@ -27,16 +27,23 @@ def save_uploaded_file(upload_file: bytes, save_name: str) -> str:
 
             public = supabase.storage.from_(SUPABASE_BUCKET).get_public_url(object_path)
             # supabase client returns dict with 'publicURL' or similar
-            public_url = None
+            # public_url = None
+            # if isinstance(public, dict):
+            #     public_url = public.get("publicURL") or public.get("public_url")
+            # elif hasattr(public, "get"):
+            #     public_url = public.get("publicURL")
+
+            # return public_url or f"{SUPABASE_BUCKET}/{object_path}"
             if isinstance(public, dict):
                 public_url = public.get("publicURL") or public.get("public_url")
-            elif hasattr(public, "get"):
-                public_url = public.get("publicURL")
+            else:
+                public_url = str(public)
 
-            return public_url or f"{SUPABASE_BUCKET}/{object_path}"
+            # ALWAYS RETURN JSON
+            return {"url": public_url}
         except Exception as e:
             logging.warning(f"Supabase upload failed, falling back to local. Error: {e}")
-
+            return {"error": str(e )}
     # Fallback: save locally
     file_path = os.path.join(FILES_DIR, save_name)
     with open(file_path, "wb") as f:
