@@ -10,7 +10,7 @@ from utils.file_handler import save_uploaded_file
 from config import FILES_DIR
 
 app = FastAPI()
-init_db()
+# init_db()
 
 
 # -----------------------
