@@ -40,16 +40,15 @@ def save_uploaded_file(upload_file: bytes, save_name: str) -> str:
                 public_url = str(public)
 
             # ALWAYS RETURN JSON
-            return {"url": public_url}
+            return {"url": public_url, "error": None}
         except Exception as e:
             logging.warning(f"Supabase upload failed, falling back to local. Error: {e}")
-            return {"error": str(e )}
-    # Fallback: save locally
-    file_path = os.path.join(FILES_DIR, save_name)
-    with open(file_path, "wb") as f:
-        f.write(upload_file)
-    return file_path
-
+            return {"url": None, "error": str(e)}
+    # # Fallback: save locally
+    # file_path = os.path.join(FILES_DIR, save_name)
+    # with open(file_path, "wb") as f:
+    #     f.write(upload_file)
+    return {"url": None, "error": "Supabase not configured"}
 
 def delete_file(save_name: str) -> bool:
     """Delete file from Supabase if configured else from local storage.
