@@ -23,7 +23,11 @@ def save_uploaded_file(upload_file: bytes, save_name: str) -> str:
                 pass
 
             # upload bytes
-            supabase.storage.from_(SUPABASE_BUCKET).upload(object_path, upload_file)
+            try:
+                supabase.storage.from_(SUPABASE_BUCKET).upload(object_path, upload_file)
+            except Exception as e:
+                logging.warning(f"Supabase upload error: {e}")
+                raise
 
             public = supabase.storage.from_(SUPABASE_BUCKET).get_public_url(object_path)
             # supabase client returns dict with 'publicURL' or similar
