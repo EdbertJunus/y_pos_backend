@@ -96,12 +96,13 @@ async def upload_stock_file(
     stock_name = "clean_stock.xlsx"
     stock_path = os.path.join(FILES_DIR, stock_name)
 
-    # remove previous file if exists
-    if os.path.exists(stock_path):
-        try:
-            os.remove(stock_path)
-        except OSError:
-            raise HTTPException(500, "Failed to remove existing stock file")
+    # remove previous file if exists (handles both supabase and local)
+    try:
+        from utils.file_handler import delete_file
+        delete_file(stock_name)
+    except Exception:
+        # non-fatal: continue and attempt upload
+        pass
 
     saved_path = save_uploaded_file(contents, stock_name)
 

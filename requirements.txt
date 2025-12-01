@@ -4,3 +4,7 @@ pydantic
 python-multipart
 pandas
 openpyxl
+supabase
+requests
+python-dotenv
+

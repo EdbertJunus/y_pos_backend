@@ -1,4 +1,5 @@
 venv/
-.env/
+# Local environment file containing secrets
+.env
 __pycache__/
 *.pyc
