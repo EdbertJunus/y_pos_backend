@@ -1,20 +1,23 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 import pandas as pd
 from io import BytesIO
 import os
 import io
 import logging
 from datetime import datetime
-from crud import init_db, insert_sales_record, get_all_files, get_file_record, upsert_sales_record
+# from crud import init_db, insert_sales_record, get_all_files, get_file_record, upsert_sales_record
 from utils.file_handler import save_uploaded_file, delete_file, fetch_file_bytes
 from config import FILES_DIR
+from supabase_db import init_db, insert_sales_record, get_all_files, get_file_record, upsert_sales_record, get_saved_path, download_sales_file
+from utils.supabase_client import bucket as SUPABASE_BUCKET
+
 
 app = FastAPI()
+init_db()
 
 # Initialize database (Supabase or SQLite)
 try:
-    init_db()
     logging.info("Database initialized successfully")
 except Exception as e:
     logging.warning(f"Database initialization warning: {e}")
@@ -54,12 +57,7 @@ async def upload_sales_file(
         saved_path = result
 
     # Insert into Supabase PostgreSQL
-    try:
-        upsert_sales_record(month, cleaned_name, saved_path)
-        logging.info(f"Uploaded sales file for month: {month}")
-    except Exception as e:
-        logging.error(f"Failed to save record to database: {e}")
-        raise HTTPException(500, f"Database error: {e}")
+    upsert_sales_record(month, cleaned_name, saved_path)
 
     return {"status": "success", "filename": cleaned_name, "path": saved_path}
 
@@ -77,18 +75,29 @@ def list_sales_files():
 # -----------------------
 @app.get("/sales/download/{file_id}")
 def download_file(file_id: int):
+    
     record = get_file_record(file_id)
     if not record:
         raise HTTPException(404, "File not found")
 
-    file_path = record["saved_path"]
-    if not os.path.exists(file_path):
-        raise HTTPException(404, "File missing on server")
+    saved_path = record["saved_path"]
 
-    return FileResponse(
-        file_path,
-        filename=os.path.basename(file_path),
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    # If saved_path is a PUBLIC URL, convert it to storage path
+    # Eg: https://xxxx.supabase.co/storage/v1/object/public/pos-files/folder/file.xlsx
+    # → pos-files/folder/file.xlsx
+    if saved_path.startswith("http"):
+        try:
+            saved_path = saved_path.split("/object/public/")[1]  # remove URL prefix
+        except:
+            raise HTTPException(400, "Invalid saved_path URL format")
+
+    file_bytes = download_sales_file(saved_path)
+
+    # Return as downloadable file
+    return StreamingResponse(
+        io.BytesIO(file_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={saved_path.split('/')[-1]}"}
     )
 
 
@@ -184,7 +193,7 @@ def merge_data(stock_path_or_url):
             how="left",
             suffixes=("", f"_{month}")
         )
-        logging.info(f"Merged {month}")
+        # logging.info(f"Merged {month}")
 
         merged_df.rename(columns={"Jumlah": f"Sales_{month}"}, inplace=True)
         merged_df[f"Sales_{month}"] = merged_df[f"Sales_{month}"].fillna(0)
@@ -203,10 +212,10 @@ def merge_data(stock_path_or_url):
 @app.get("/stock/download")
 def download_stock_file():
     stock_name = "clean_stock.xlsx"
-    
+    stock_path = get_saved_path(stock_name)
     try:
         # Try to fetch stock file bytes to verify it exists
-        stock_bytes = fetch_file_bytes(stock_name)
+        stock_bytes = fetch_file_bytes(stock_path)
     except FileNotFoundError:
         raise HTTPException(404, "Stock file not found. Please upload a stock file first.")
     except Exception as e:
@@ -214,7 +223,7 @@ def download_stock_file():
         raise HTTPException(500, f"Error accessing stock file: {e}")
 
     try:
-        merge_df, output_path = merge_data(stock_name)
+        merge_df, output_path = merge_data(stock_path)
     except HTTPException:
         raise
     except Exception as e:

@@ -5,22 +5,20 @@ Uses supabase Python client for database access.
 
 import logging
 from config import USE_SUPABASE, SUPABASE_URL, SUPABASE_KEY
+from utils.supabase_client import supabase, bucket as SUPABASE_BUCKET
 
-supabase_client = None
+
 
 if USE_SUPABASE and SUPABASE_URL and SUPABASE_KEY:
     try:
-        from supabase import create_client
-        supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
         logging.info("Supabase client initialized for database operations")
     except Exception as e:
         logging.error(f"Failed to initialize Supabase client: {e}")
-        supabase_client = None
 
 
 def init_db():
     """Initialize the sales_files table in Supabase PostgreSQL."""
-    if not supabase_client:
+    if not supabase:
         logging.error("Supabase client not initialized")
         return
 
@@ -51,16 +49,20 @@ def init_db():
 
 def upsert_sales_record(month: str, filename: str, saved_path: str):
     """Insert or update a sales record."""
-    if not supabase_client:
+    if not supabase:
         raise Exception("Supabase client not initialized")
+    
+    test = supabase.table("sales_files").select("*").execute()
+    print(test, flush=True)
+    logging.info(f"Current sales_files table data: {test.data}")
 
     try:
         # Check if record exists
-        existing = supabase_client.table("sales_files").select("id").eq("month", month).execute()
+        existing = supabase.table("sales_files").select("id").eq("month", month).execute()
         
         if existing.data and len(existing.data) > 0:
             # Update existing record
-            supabase_client.table("sales_files").update({
+            supabase.table("sales_files").update({
                 "filename": filename,
                 "saved_path": saved_path,
                 "updated_at": "NOW()"
@@ -68,7 +70,7 @@ def upsert_sales_record(month: str, filename: str, saved_path: str):
             logging.info(f"Updated sales record for month: {month}")
         else:
             # Insert new record
-            supabase_client.table("sales_files").insert({
+            supabase.table("sales_files").insert({
                 "month": month,
                 "filename": filename,
                 "saved_path": saved_path
@@ -82,37 +84,62 @@ def upsert_sales_record(month: str, filename: str, saved_path: str):
 
 def get_all_files():
     """Get all sales files ordered by created_at descending."""
-    if not supabase_client:
+    if not supabase:
         raise Exception("Supabase client not initialized")
 
     try:
-        response = supabase_client.table("sales_files").select("*").order("created_at", desc=True).execute()
+        response = supabase.table("sales_files").select("*").order("created_at", desc=True).execute()
         return response.data if response.data else []
     except Exception as e:
         logging.error(f"Failed to fetch all files: {e}")
         raise
 
-
-def get_file_record(file_id: int):
-    """Get a specific file record by ID."""
-    if not supabase_client:
+def get_saved_path(file_name: str):
+    """Get the stock file record."""
+    if not supabase:
         raise Exception("Supabase client not initialized")
 
     try:
-        response = supabase_client.table("sales_files").select("*").eq("id", file_id).execute()
+        response = supabase.storage.from_("pos-files").get_public_url(file_name)
+
+        return response
+    except Exception as e:
+        logging.error(f"Failed to fetch stock file record: {e}")
+        raise
+
+
+def get_file_record(file_id: int):
+    """Get a specific file record by ID."""
+    if not supabase:
+        raise Exception("Supabase client not initialized")
+
+    try:
+        response = supabase.table("sales_files").select("*").eq("id", file_id).execute()
         return response.data[0] if response.data and len(response.data) > 0 else None
     except Exception as e:
         logging.error(f"Failed to fetch file record: {e}")
         raise
 
+def download_sales_file(saved_path: str) -> bytes:
+    
+    # Remove the bucket prefix (pos-files/) because from_(bucket) already defines it
+    if saved_path.startswith(SUPABASE_BUCKET + "/"):
+        saved_path = saved_path[len(SUPABASE_BUCKET)+1 :]
+
+    # Download from Supabase
+    try:
+        file_bytes = supabase.storage.from_(SUPABASE_BUCKET).download(saved_path)
+        return file_bytes
+    except Exception as e:
+        raise HTTPException(500, f"Failed to download from Supabase: {str(e)}")
 
 def insert_sales_record(month, filename, saved_path):
     """Insert a new sales record (without checking for duplicates)."""
-    if not supabase_client:
+    if not supabase:
         raise Exception("Supabase client not initialized")
 
     try:
-        supabase_client.table("sales_files").insert({
+        supabase.table("sales_files").insert({
             "month": month,
             "filename": filename,
             "saved_path": saved_path

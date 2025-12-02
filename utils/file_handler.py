@@ -30,14 +30,7 @@ def save_uploaded_file(upload_file: bytes, save_name: str) -> str:
                 raise
 
             public = supabase.storage.from_(SUPABASE_BUCKET).get_public_url(object_path)
-            # supabase client returns dict with 'publicURL' or similar
-            # public_url = None
-            # if isinstance(public, dict):
-            #     public_url = public.get("publicURL") or public.get("public_url")
-            # elif hasattr(public, "get"):
-            #     public_url = public.get("publicURL")
-
-            # return public_url or f"{SUPABASE_BUCKET}/{object_path}"
+           
             if isinstance(public, dict):
                 public_url = public.get("publicURL") or public.get("public_url")
             else:
@@ -49,9 +42,7 @@ def save_uploaded_file(upload_file: bytes, save_name: str) -> str:
             logging.warning(f"Supabase upload failed, falling back to local. Error: {e}")
             return {"url": None, "error": str(e)}
     # # Fallback: save locally
-    # file_path = os.path.join(FILES_DIR, save_name)
-    # with open(file_path, "wb") as f:
-    #     f.write(upload_file)
+  
     return {"url": None, "error": "Supabase not configured"}
 
 def delete_file(save_name: str) -> bool:
@@ -77,33 +68,43 @@ def delete_file(save_name: str) -> bool:
             return False
     return True
 
+def extract_object_path(saved_url: str) -> str:
+    return saved_url.split("/pos-files/", 1)[-1]
+
 
 def fetch_file_bytes(path_or_url: str) -> bytes:
     """Given either a local path or an HTTP URL, return bytes of the file."""
     # HTTP URL
+
+    path_or_url = extract_object_path(path_or_url)
+
     if path_or_url.startswith("http://") or path_or_url.startswith("https://"):
-        r = requests.get(path_or_url)
-        r.raise_for_status()
-        return r.content
-
-    # local path
-    if os.path.exists(path_or_url):
-        with open(path_or_url, "rb") as f:
-            return f.read()
-
-    # If it's of the form 'bucket/object' and supabase available, try download
-    if USE_SUPABASE and supabase and "/" in path_or_url:
-        # assume format 'object_name' or 'bucket/object'
-        object_name = path_or_url.split("/", 1)[-1]
+        print("Fetching via HTTP:", path_or_url, flush=True)
         try:
-            data = supabase.storage.from_(SUPABASE_BUCKET).download(object_name)
-            # Some clients return a file-like or bytes
-            if isinstance(data, bytes):
-                return data
-            # otherwise turn into bytes
-            return BytesIO(data).getvalue()
+            r = requests.get(path_or_url)
+            r.raise_for_status()
+            return r.content
+        except Exception as e:
+            raise FileNotFoundError(f"Failed to download file via URL: {e}")
+
+    
+    if USE_SUPABASE and supabase:
+        # object_name = path_or_url.split("/", 1)[-1]
+        print(f"Fetching from Supabase: {path_or_url}", flush=True)
+        try:
+            file_obj = supabase.storage.from_(SUPABASE_BUCKET).download(path_or_url)
+            
+            # new fix — extract bytes properly
+            if hasattr(file_obj, "data"):
+                return file_obj.data  
+            if isinstance(file_obj, bytes):
+                return file_obj
+
+            return BytesIO(file_obj).getvalue()
+
         except Exception as e:
             raise FileNotFoundError(f"Unable to fetch file from Supabase: {e}")
+
 
     raise FileNotFoundError(f"File not found locally or as URL: {path_or_url}")
 
