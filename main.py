@@ -204,7 +204,7 @@ def merge_data(stock_path_or_url):
         merged_df["Average_Qty"] = merged_df[qty_cols].mean(axis=1)
 
     output_path = os.path.join(FILES_DIR, "stock_merged.xlsx")
-    merged_df.to_excel(output_path, index=False)
+    # merged_df.to_excel(output_path, index=False)
 
     return merged_df, output_path
 
