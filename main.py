@@ -206,17 +206,17 @@ def merge_data(stock_path_or_url):
     output_path = os.path.join(FILES_DIR, "stock_merged.xlsx")
 
         
-    # buffer = BytesIO()
-    # merged_df.to_excel(buffer, index=False)
-    # buffer.seek(0)
+    buffer = BytesIO()
+    merged_df.to_excel(buffer, index=False)
+    buffer.seek(0)
 
-    # contents = buffer.getvalue()
+    contents = buffer.getvalue()
 
-    # result = save_uploaded_file(contents, cleaned_name)
+    result = save_uploaded_file(contents, cleaned_name)
 
     merged_df.to_excel(output_path, index=False)
 
-    return merged_df, output_path
+    return contents, output_path
 
 # Download Merged Stock with Sales
 @app.get("/stock/download")
@@ -241,8 +241,8 @@ def download_stock_file():
         raise HTTPException(500, f"Failed to merge files: {e}")
 
     # Check if merged file was created
-    if not os.path.exists(output_path):
-        raise HTTPException(500, "Failed to create merged file")
+    # if not os.path.exists(output_path):
+    #     raise HTTPException(500, "Failed to create merged file")
 
     today = datetime.now().strftime("%d-%m-%Y")
     stock_name_download = f"stock_{today}.xlsx"
