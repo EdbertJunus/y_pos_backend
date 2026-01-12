@@ -203,7 +203,7 @@ def merge_data(stock_path_or_url):
     if qty_cols:
         merged_df["Average_Qty"] = merged_df[qty_cols].mean(axis=1)
 
-    output_path = os.path.join(FILES_DIR, "stock_merged.xlsx")
+    # output_path = os.path.join(FILES_DIR, "stock_merged.xlsx")
         
     buffer = BytesIO()
     merged_df.to_excel(buffer, index=False)
@@ -213,7 +213,7 @@ def merge_data(stock_path_or_url):
 
     # merged_df.to_excel(output_path, index=False)
 
-    return contents, output_path
+    return contents
 
 # Download Merged Stock with Sales
 @app.get("/stock/download")
@@ -230,7 +230,7 @@ def download_stock_file():
         raise HTTPException(500, f"Error accessing stock file: {e}")
 
     try:
-        contents, output_path = merge_data(stock_path)
+         = merge_data(stock_path)
     except HTTPException:
         raise 
     except Exception as e:
@@ -246,8 +246,8 @@ def download_stock_file():
 
     file_bytes = download_sales_file("pos-files/stock_merged.xlsx")
 
-    return StreamingResponse(
-        io.BytesIO(file_bytes),
+    return FileResponse(
+        contents,
         filename=stock_name_download,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
