@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Response
 from fastapi.responses import FileResponse, StreamingResponse
 import pandas as pd
 from io import BytesIO
@@ -252,14 +252,13 @@ def download_stock_file():
     result = save_uploaded_file(content, 'stock_merged.xlsx')
 
     return Response(
-        content,
-        filename=stock_name_download,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={
-        "Content-Disposition": f'attachment; filename="stock_{datetime.now():%d-%m-%Y}.xlsx"',
+    content=content,
+    media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    headers={
+        "Content-Disposition": f'attachment; filename="{stock_name_download}"',
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         "Pragma": "no-cache",
         "Expires": "0",
-        },
-    )
+    },
+)
 
