@@ -246,7 +246,7 @@ def download_stock_file():
 
     file_bytes = download_sales_file("pos-files/stock_merged.xlsx")
 
-    return FileResponse(
+    return Response(
         contents,
         filename=stock_name_download,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -255,6 +255,6 @@ def download_stock_file():
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         "Pragma": "no-cache",
         "Expires": "0",
-    },
+        },
     )
 
