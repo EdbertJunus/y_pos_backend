@@ -230,7 +230,7 @@ def download_stock_file():
         raise HTTPException(500, f"Error accessing stock file: {e}")
 
     try:
-         = merge_data(stock_path)
+        contents = merge_data(stock_path)
     except HTTPException:
         raise 
     except Exception as e:
