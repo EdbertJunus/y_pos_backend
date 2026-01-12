@@ -250,6 +250,12 @@ def download_stock_file():
     return FileResponse(
         output_path,
         filename=stock_name_download,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+        "Content-Disposition": f'attachment; filename="stock_{datetime.now():%d-%m-%Y}.xlsx"',
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    },
     )
 
