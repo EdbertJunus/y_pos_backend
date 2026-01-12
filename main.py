@@ -211,7 +211,7 @@ def merge_data(stock_path_or_url):
     contents = buffer.getvalue()
     result = save_uploaded_file(contents, 'stock_merged.xlsx')
 
-    merged_df.to_excel(output_path, index=False)
+    # merged_df.to_excel(output_path, index=False)
 
     return contents, output_path
 
