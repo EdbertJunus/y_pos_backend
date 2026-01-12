@@ -204,7 +204,17 @@ def merge_data(stock_path_or_url):
         merged_df["Average_Qty"] = merged_df[qty_cols].mean(axis=1)
 
     output_path = os.path.join(FILES_DIR, "stock_merged.xlsx")
-    # merged_df.to_excel(output_path, index=False)
+
+        
+    # buffer = BytesIO()
+    # merged_df.to_excel(buffer, index=False)
+    # buffer.seek(0)
+
+    # contents = buffer.getvalue()
+
+    # result = save_uploaded_file(contents, cleaned_name)
+
+    merged_df.to_excel(output_path, index=False)
 
     return merged_df, output_path
 
@@ -225,7 +235,7 @@ def download_stock_file():
     try:
         merge_df, output_path = merge_data(stock_path)
     except HTTPException:
-        raise
+        raise 
     except Exception as e:
         logging.error(f"Merge failed: {e}")
         raise HTTPException(500, f"Failed to merge files: {e}")
